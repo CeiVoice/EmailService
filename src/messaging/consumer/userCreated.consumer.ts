@@ -1,6 +1,6 @@
 import startRabbit from '../rabbit';
 import { EXCHANGES,ROUNTING_KEYS } from '../event';
-import { sendWelcomeEmail } from '../../service/emailService';
+import { sendConfirmationEmail } from '../../service/emailService';
 
 export async function startUserCreatedConsumer() {
   const channel = await startRabbit();
@@ -20,14 +20,27 @@ export async function startUserCreatedConsumer() {
     if (!msg) return;
 
     const event = JSON.parse(msg.content.toString());
+    
+    console.log('Received event:', JSON.stringify(event, null, 2));
 
     try {
+      const { email, emailConfirmToken } = event.data;
+      
+      console.log('Email:', email);
+      console.log('Token exists:', !!emailConfirmToken);
+      
+      if (!emailConfirmToken) {
+        console.warn('No emailConfirmToken in event data');
+        channel.ack(msg);
+        return;
+      }
+      
       console.log(
-        'Send welcome email to:',
-        event.data.email
+        'Sending confirmation email to:',
+        email
       );
 
-      await sendWelcomeEmail(event.data.email);
+      await sendConfirmationEmail(email, emailConfirmToken);
 
       channel.ack(msg);
     } catch (err) {
