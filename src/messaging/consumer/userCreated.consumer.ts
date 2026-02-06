@@ -1,51 +1,65 @@
-import startRabbit from '../rabbit';
-import { EXCHANGES,ROUNTING_KEYS } from '../event';
-import { sendConfirmationEmail } from '../../service/emailService';
+import startRabbit from '../rabbit'
+import { EXCHANGES, ROUNTING_KEYS } from '../event'
+import { sendConfirmationEmail } from '../../service/emailService'
+import jwt from "jsonwebtoken"
+import fs from "fs"
+import path from "path"
 
+
+const publicKey = fs.readFileSync(
+  path.join(process.cwd(), "secrets", "identity_public_key.pem"),
+  "utf8"
+)
 export async function startUserCreatedConsumer() {
-  const channel = await startRabbit();
+  const channel = await startRabbit()
 
   const { queue } = await channel.assertQueue(
     'email.user.created',
     { durable: true }
-  );
+  )
 
   await channel.bindQueue(
     queue,
     EXCHANGES.IDENTITY,
     ROUNTING_KEYS.USER_CREATED
-  );
+  )
 
   channel.consume(queue, async (msg) => {
-    if (!msg) return;
-
-    const event = JSON.parse(msg.content.toString());
-    
-    console.log('Received event:', JSON.stringify(event, null, 2));
+    if (!msg) return
 
     try {
-      const { email, emailConfirmToken } = event.data;
-      
-      console.log('Email:', email);
-      console.log('Token exists:', !!emailConfirmToken);
-      
-      if (!emailConfirmToken) {
-        console.warn('No emailConfirmToken in event data');
-        channel.ack(msg);
-        return;
+      const raw = JSON.parse(msg.content.toString())
+
+      if (!raw.token) {
+        throw new Error("missing token")
       }
-      
-      console.log(
-        'Sending confirmation email to:',
-        email
-      );
 
-      await sendConfirmationEmail(email, emailConfirmToken);
+      if (!publicKey) {
+        throw new Error("missing public key")
+      }
 
-      channel.ack(msg);
+      const decoded = jwt.verify(
+        raw.token,
+        publicKey,
+        { algorithms: ["RS256"] }
+      ) as any
+
+      if (decoded.service !== "identity_service") {
+        throw new Error("invalid producer")
+      }
+
+      const { email, emailConfirmToken } = decoded.data
+
+      if (!emailConfirmToken) {
+        throw new Error("missing confirm token")
+      }
+
+      await sendConfirmationEmail(email, emailConfirmToken)
+
+      channel.ack(msg)
     } catch (err) {
-      console.error('Error sending email:', err);
-      channel.nack(msg, false, false);
+      console.error("consumer error:", (err as Error).message)
+      channel.nack(msg, false, false)
     }
-  });
+  })
 }
