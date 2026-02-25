@@ -99,3 +99,67 @@ export async function sendWelcomeEmail(email: string) {
     throw err;
   }
 }
+
+export async function sendTicketCreatedEmail(
+  recipientEmail: string,
+  recipientName: string,
+  ticketId: number,
+  ticketTitle: string,
+  createdAt: string
+) {
+  try {
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+          <h1 style="color: #333; margin: 0 0 10px 0;">Ticket Created Successfully</h1>
+          <p style="color: #666; margin: 0;">Hi ${recipientName}, your ticket has been submitted and is pending review.</p>
+        </div>
+
+        <div style="background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+          <h2 style="color: #333; margin: 0 0 15px 0; font-size: 16px;">Ticket Details</h2>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 8px 0; color: #666; font-size: 14px; width: 140px;">Ticket ID</td>
+              <td style="padding: 8px 0; color: #333; font-size: 14px; font-weight: bold;">#${ticketId}</td>
+            </tr>
+            <tr style="border-top: 1px solid #f0f0f0;">
+              <td style="padding: 8px 0; color: #666; font-size: 14px;">Title</td>
+              <td style="padding: 8px 0; color: #333; font-size: 14px;">${ticketTitle}</td>
+            </tr>
+            <tr style="border-top: 1px solid #f0f0f0;">
+              <td style="padding: 8px 0; color: #666; font-size: 14px;">Submitted At</td>
+              <td style="padding: 8px 0; color: #333; font-size: 14px;">${new Date(createdAt).toLocaleString()}</td>
+            </tr>
+            <tr style="border-top: 1px solid #f0f0f0;">
+              <td style="padding: 8px 0; color: #666; font-size: 14px;">Status</td>
+              <td style="padding: 8px 0;">
+                <span style="background-color: #fff3cd; color: #856404; padding: 2px 10px; border-radius: 12px; font-size: 13px;">Pending Review</span>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <div style="margin-top: 20px; padding: 15px; background-color: #e8f4fd; border-radius: 8px;">
+          <p style="color: #0c5460; margin: 0; font-size: 14px;">
+            Our team will review your ticket and group it accordingly. You will be notified once it has been processed.
+          </p>
+        </div>
+
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
+          <p style="color: #999; font-size: 12px; margin: 0;">
+            This is an automated message from CeiVoice. Please do not reply to this email.
+          </p>
+        </div>
+      </div>
+    `;
+
+    return sendEmail({
+      to: recipientEmail,
+      subject: `[CeiVoice] Ticket #${ticketId} Created - ${ticketTitle}`,
+      html
+    });
+  } catch (err) {
+    console.error('Failed to send ticket created email:', err);
+    throw err;
+  }
+}

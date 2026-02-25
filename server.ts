@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import express, { Request, Response } from 'express';
 import { startUserCreatedConsumer } from './src/messaging/consumer/userCreated.consumer';
+import { startTicketCreatedConsumer } from './src/messaging/consumer/ticketCreated.consumer';
 import startRabbit from './src/messaging/rabbit';
 import swaggerJSDoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
@@ -84,6 +85,8 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
   try {
       await startUserCreatedConsumer();
       console.log('UserCreated consumer started');
+      await startTicketCreatedConsumer();
+      console.log('TicketCreated consumer started');
   } catch (err) {
       console.error('Failed to start consumer', err);
   }
