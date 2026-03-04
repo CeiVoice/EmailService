@@ -163,3 +163,118 @@ export async function sendTicketCreatedEmail(
     throw err;
   }
 }
+
+export async function sendAssignedEmail(
+  recipientEmail: string,
+  recipientName: string,
+  ticketId: number,
+  ticketTitle: string,
+  assignedAt: string
+) {
+  try {
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background-color: #e8f4fd; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+          <h1 style="color: #0c5460; margin: 0 0 10px 0;">You Have Been Assigned to a Ticket</h1>
+          <p style="color: #0c5460; margin: 0;">Hi ${recipientName}, a ticket has been assigned to you.</p>
+        </div>
+        <div style="background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+          <h2 style="color: #333; margin: 0 0 15px 0; font-size: 16px;">Ticket Details</h2>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 8px 0; color: #666; font-size: 14px; width: 140px;">Ticket ID</td>
+              <td style="padding: 8px 0; color: #333; font-size: 14px; font-weight: bold;">#${ticketId}</td>
+            </tr>
+            <tr style="border-top: 1px solid #f0f0f0;">
+              <td style="padding: 8px 0; color: #666; font-size: 14px;">Title</td>
+              <td style="padding: 8px 0; color: #333; font-size: 14px;">${ticketTitle}</td>
+            </tr>
+            <tr style="border-top: 1px solid #f0f0f0;">
+              <td style="padding: 8px 0; color: #666; font-size: 14px;">Assigned At</td>
+              <td style="padding: 8px 0; color: #333; font-size: 14px;">${new Date(assignedAt).toLocaleString()}</td>
+            </tr>
+            <tr style="border-top: 1px solid #f0f0f0;">
+              <td style="padding: 8px 0; color: #666; font-size: 14px;">Status</td>
+              <td style="padding: 8px 0;">
+                <span style="background-color: #cce5ff; color: #004085; padding: 2px 10px; border-radius: 12px; font-size: 13px;">Assigned</span>
+              </td>
+            </tr>
+          </table>
+        </div>
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
+          <p style="color: #999; font-size: 12px; margin: 0;">This is an automated message from CeiVoice. Please do not reply to this email.</p>
+        </div>
+      </div>
+    `;
+    return sendEmail({
+      to: recipientEmail,
+      subject: `[CeiVoice] Ticket #${ticketId} Assigned to You - ${ticketTitle}`,
+      html
+    });
+  } catch (err) {
+    console.error('Failed to send assigned email:', err);
+    throw err;
+  }
+}
+
+const STATUS_COLORS: Record<string, { bg: string; text: string; label: string }> = {
+  assigned:  { bg: '#cce5ff', text: '#004085', label: 'Assigned' },
+  solving:   { bg: '#fff3cd', text: '#856404', label: 'Solving' },
+  solved:    { bg: '#d4edda', text: '#155724', label: 'Solved' },
+  failed:    { bg: '#f8d7da', text: '#721c24', label: 'Failed' },
+};
+
+export async function sendStatusChangedEmail(
+  recipientEmail: string,
+  recipientName: string,
+  ticketId: number,
+  ticketTitle: string,
+  newStatus: string,
+  changedAt: string
+) {
+  try {
+    const style = STATUS_COLORS[newStatus.toLowerCase()] ?? { bg: '#e2e3e5', text: '#383d41', label: newStatus };
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+          <h1 style="color: #333; margin: 0 0 10px 0;">Ticket Status Updated</h1>
+          <p style="color: #666; margin: 0;">Hi ${recipientName}, the status of your ticket has changed.</p>
+        </div>
+        <div style="background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+          <h2 style="color: #333; margin: 0 0 15px 0; font-size: 16px;">Ticket Details</h2>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 8px 0; color: #666; font-size: 14px; width: 140px;">Ticket ID</td>
+              <td style="padding: 8px 0; color: #333; font-size: 14px; font-weight: bold;">#${ticketId}</td>
+            </tr>
+            <tr style="border-top: 1px solid #f0f0f0;">
+              <td style="padding: 8px 0; color: #666; font-size: 14px;">Title</td>
+              <td style="padding: 8px 0; color: #333; font-size: 14px;">${ticketTitle}</td>
+            </tr>
+            <tr style="border-top: 1px solid #f0f0f0;">
+              <td style="padding: 8px 0; color: #666; font-size: 14px;">New Status</td>
+              <td style="padding: 8px 0;">
+                <span style="background-color: ${style.bg}; color: ${style.text}; padding: 2px 10px; border-radius: 12px; font-size: 13px;">${style.label}</span>
+              </td>
+            </tr>
+            <tr style="border-top: 1px solid #f0f0f0;">
+              <td style="padding: 8px 0; color: #666; font-size: 14px;">Updated At</td>
+              <td style="padding: 8px 0; color: #333; font-size: 14px;">${new Date(changedAt).toLocaleString()}</td>
+            </tr>
+          </table>
+        </div>
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
+          <p style="color: #999; font-size: 12px; margin: 0;">This is an automated message from CeiVoice. Please do not reply to this email.</p>
+        </div>
+      </div>
+    `;
+    return sendEmail({
+      to: recipientEmail,
+      subject: `[CeiVoice] Ticket #${ticketId} Status Changed to ${style.label} - ${ticketTitle}`,
+      html
+    });
+  } catch (err) {
+    console.error('Failed to send status changed email:', err);
+    throw err;
+  }
+}
